@@ -78,15 +78,15 @@ class RunScriptParallel(object):
         cmd_log_path = self.log_path.format(paral_value_of_task)
         cmd = self.script.replace(self.parallel_para, paral_value_of_task) + ' > ' + cmd_log_path
 
-        nowtime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-        logging.info(LOG_MSG_LEV2_PREV+"并行作业[" + paral_value_of_task + "]执行开始,时间[" + nowtime + "]")
+        #nowtime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+        logging.info(LOG_MSG_LEV2_PREV+"并行作业[" + paral_value_of_task + "]执行开始......")
         re = os.system(cmd)
         if (re == 0):
-            logging.info(LOG_MSG_LEV2_PREV + "并行作业[" + paral_value_of_task + "]执行成功,时间[" + nowtime + "]")
+            logging.info(LOG_MSG_LEV2_PREV + "并行作业[" + paral_value_of_task + "]执行成功!!!")
             re_succ.append(paral_value_of_task)
         else:
-            nowtime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-            logging.error(LOG_MSG_LEV2_PREV + "并行作业[" + paral_value_of_task + "]执行失败,时间[" + nowtime + "]")
+            #nowtime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
+            logging.error(LOG_MSG_LEV2_PREV + "并行作业[" + paral_value_of_task + "]执行失败!!!")
             re_fail.append(paral_value_of_task)
             raise
 
@@ -104,8 +104,8 @@ class RunScriptParallel(object):
         pool.close()
         pool.join()
         logging.info(LOG_MSG_LEV1_PREV + "并行作业执行成功的作业个数：" + str(len(re_succ)) + ",明细作业=[" + ','.join(sorted(re_succ)) + "]")
+        logging.info(LOG_MSG_LEV1_PREV + "并行作业执行失败的作业个数：" + str(len(re_fail)) + ",明细作业=[" + ','.join(sorted(re_fail)) + "]")
         if len(re_fail) > 0:
-            logging.error(LOG_MSG_LEV1_PREV +"并行作业执行失败的作业个数：" + str(len(re_fail)) + ",明细作业=[" + ','.join(sorted(re_fail)) + "]")
             raise
 
 def exitinfo():
@@ -119,7 +119,7 @@ def exitinfo():
         -h,--help      帮助
      示例1:   python ParallelTool.py -s "sh ./single_task_demo.sh 'param'" -v '16,12,13,14,15'
                 # 相当于执行[sh ./single_task_demo.sh '12'等5个]
-     示例2： python ParallelTool.py -s "sh ./single_task_demo.sh 'parameter'" -v '11,12,13,13,15' -p 'parameter' -n 3 -j 'single_task_demo_job'
+     示例2： python ParallelTool.py -s "sh ./single_task_demo.sh 'parameter'" -v '11,12,13,14,15' -p 'parameter' -n 3 -j 'single_task_demo_job'
     """
     logging.warn(descinfo)
     sys.exit(1)
@@ -159,16 +159,15 @@ def main(argv):
     single_file_log_path = DEFAULT_PARALLEL_LOG_FILE_DIR + PARALLEL_LOG_FILE_FORMAT.format(job_name,'{0}',DEFAULT_PARALLEL_LOG_FILE_SUFFIX)
     parallel_dict['log_path'] = single_file_log_path
     
-    msg = LOG_MSG_LEV1_PREV + "并行作业开始：" + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S') + ",并发数："+parallel_dict['parallel_num']
+    msg = LOG_MSG_LEV1_PREV + "并行作业开始......" + ",并发数："+str(parallel_dict['parallel_num'])
     logging.info(msg)
     logging.info(LOG_MSG_LEV1_PREV + "生成单个作业的日志文件形如：" + single_file_log_path.format('xxxxxx'))
     run_parallel = RunScriptParallel(**parallel_dict)
     try:
         run_parallel.parallel()
-        logging.info(LOG_MSG_LEV1_PREV + "并发作业完成：" + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
-        print
+        logging.info(LOG_MSG_LEV1_PREV + "并发作业完成!!!")
     except Exception, e:
-        logging.error(LOG_MSG_LEV1_PREV + "并发作业失败：" + datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S'))
+        logging.error(LOG_MSG_LEV1_PREV + "并发作业失败!!!")
         raise
 
 if __name__ == "__main__":
