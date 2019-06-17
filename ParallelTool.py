@@ -39,6 +39,7 @@ DEFAULT_PARALLEL_VALUES_SPLIT = ','
 
 #单个执行脚本任务的日志文件，相关默认值
 PARALLEL_LOG_FILE_FORMAT = '{0}.{1}{2}'
+PARALLEL_LOG_NULL = '/dev/null'
     # 0：前缀名，如任务名;
     # 1: 并行值；
     # 2：后缀名如.log
@@ -75,8 +76,13 @@ class RunScriptParallel(object):
         :param paral_value_of_task，单个任务的取值
         :return:
         """
-        cmd_log_path = self.log_path.format(paral_value_of_task)
-        cmd = self.script.replace(self.parallel_para, paral_value_of_task) + ' > ' + cmd_log_path
+        
+        cmd = self.script.replace(self.parallel_para, paral_value_of_task)
+        if self.log_path:
+            cmd_log_path = self.log_path.format(paral_value_of_task)
+        else:
+            cmd_log_path = PARALLEL_LOG_NULL
+        cmd = cmd + ' > ' + cmd_log_path
 
         #nowtime = datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         logging.info(LOG_MSG_LEV2_PREV+"并行作业[" + paral_value_of_task + "]执行开始......")
@@ -115,11 +121,15 @@ def exitinfo():
         -n,--num       可选；并行同时执行的个数
         -v,--val       必选；取值范围,默认逗号隔开
         -p,--param     可选；并行参数，默认为param
-        -j,--job       可选；单个作业的日志文件名，默认为UUID值
+        -j,--job       可选；默认为空，即不生成单个作业的中间日志文件；若填写时，单个作业的日志文件名部分; 
+        -d,--dir       可选；默认为/tmp/，与job参数共同组成单个作业的日志文件名
         -h,--help      帮助
      示例1:   python ParallelTool.py -s "sh ./single_task_demo.sh 'param'" -v '16,12,13,14,15'
-                # 相当于执行[sh ./single_task_demo.sh '12'等5个]
-     示例2： python ParallelTool.py -s "sh ./single_task_demo.sh 'parameter'" -v '11,12,13,14,15' -p 'parameter' -n 3 -j 'single_task_demo_job'
+                # 功能：相当于执行[sh ./single_task_demo.sh '16'],[sh ./single_task_demo.sh '12']等5个
+                #    1. 并发数=3； 2. 单个作业无中间日志； 
+     示例2： python ParallelTool.py -s "sh ./single_task_demo.sh 'parameter'" -v '11,12,13,14,15' -p 'parameter' -n 2 -j 'single_task_demo_job'
+                # 功能：相当于执行[sh ./single_task_demo.sh '11'],[sh ./single_task_demo.sh '12']等5个
+                #    1. 并发数=3； 2. 单个作业有中间日志=/tmp/single_task_demo_job.xxxxx.log； 
     """
     logging.warn(descinfo)
     sys.exit(1)
@@ -132,7 +142,8 @@ def main(argv):
         opts, args = getopt.getopt(argv,DWP_BIN_PARA1,DWP_BIN_PARA2)
     except getopt.GetoptError:
         exitinfo()
-    job_name = ''.join(str(uuid.uuid4()))
+    job_dir = DEFAULT_PARALLEL_LOG_FILE_DIR
+    job_name = None # ''.join(str(uuid.uuid4()))
     parallel_dict = {}
     for i in range(len(opts)):
         (opt, arg) = opts[i]
@@ -146,6 +157,8 @@ def main(argv):
             parallel_dict['script'] = arg
         elif opt in ("-j", "--job"):
             job_name = arg
+        elif opt in ("-d", "--dir"):
+            job_dir = arg
         elif opt in ("-h", "--help"):
             exitinfo()
 
@@ -155,13 +168,14 @@ def main(argv):
         parallel_dict['parallel_para'] = DEFAULT_PARALLEL_PARA
     if (not parallel_dict.has_key('script')) or (not parallel_dict.has_key('parallel_values')) :
         exitinfo()
-
-    single_file_log_path = DEFAULT_PARALLEL_LOG_FILE_DIR + PARALLEL_LOG_FILE_FORMAT.format(job_name,'{0}',DEFAULT_PARALLEL_LOG_FILE_SUFFIX)
-    parallel_dict['log_path'] = single_file_log_path
+    if job_name:
+        single_file_log_path = job_dir + PARALLEL_LOG_FILE_FORMAT.format(job_name,'{0}',DEFAULT_PARALLEL_LOG_FILE_SUFFIX)
+        parallel_dict['log_path'] = single_file_log_path
+        logging.info(LOG_MSG_LEV1_PREV + "生成单个作业的日志文件形如：" + single_file_log_path.format('xxxxxx'))
     
     msg = LOG_MSG_LEV1_PREV + "并行作业开始......" + ",并发数："+str(parallel_dict['parallel_num'])
     logging.info(msg)
-    logging.info(LOG_MSG_LEV1_PREV + "生成单个作业的日志文件形如：" + single_file_log_path.format('xxxxxx'))
+    
     run_parallel = RunScriptParallel(**parallel_dict)
     try:
         run_parallel.parallel()
